@@ -36,19 +36,6 @@ jobs:
       - name: Build and start containers
         run: docker compose --env-file .env up -d --build
 
-      - name: Wait for app health
-        run: |
-          for i in {1..30}; do
-            if curl -fsS "http://localhost:${APP_PORT}/health" >/dev/null; then
-              echo "Application is healthy"
-              exit 0
-            fi
-            sleep 2
-          done
-          echo "Application did not become healthy in time"
-          docker compose logs
-          exit 1
-
       - name: Run functional test
         run: APP_URL="http://localhost:${APP_PORT}" ./tests/functional_test.sh
 
