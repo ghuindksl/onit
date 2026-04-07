@@ -1,0 +1,29 @@
+services:
+  node1:
+    build:
+      context: ./node_app
+    environment:
+      NODE_NAME: "Node 1"
+
+  node2:
+    build:
+      context: ./node_app
+    environment:
+      NODE_NAME: "Node 2"
+
+  node3:
+    build:
+      context: ./node_app
+    environment:
+      NODE_NAME: "Node 3"
+
+  nginx:
+    image: nginx:1.27-alpine
+    depends_on:
+      - node1
+      - node2
+      - node3
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro

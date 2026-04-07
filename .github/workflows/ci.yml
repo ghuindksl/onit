@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  push:
+    branches: ["main", "master"]
+  pull_request:
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    env:
+      DB_NAME: ${{ vars.DB_NAME }}
+      DB_USER: ${{ secrets.DB_USER }}
+      DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+      DB_HOST: db
+      DB_PORT: 5432
+      APP_PORT: 8000
+      NODE_NAME: ci-node
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create .env file
+        run: |
+          cat <<EOF > .env
+          DB_NAME=${DB_NAME}
+          DB_USER=${DB_USER}
+          DB_PASSWORD=${DB_PASSWORD}
+          DB_HOST=${DB_HOST}
+          DB_PORT=${DB_PORT}
+          APP_PORT=${APP_PORT}
+          NODE_NAME=${NODE_NAME}
+          EOF
+
+      - name: Build and start containers
+        run: docker compose --env-file .env up -d --build
+
+      - name: Wait for app health
+        run: |
+          for i in {1..30}; do
+            if curl -fsS "http://localhost:${APP_PORT}/health" >/dev/null; then
+              echo "Application is healthy"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Application did not become healthy in time"
+          docker compose logs
+          exit 1
+
+      - name: Run functional test
+        run: APP_URL="http://localhost:${APP_PORT}" ./tests/functional_test.sh
+
+      - name: Print logs on failure
+        if: failure()
+        run: docker compose logs
+
+      - name: Stop containers
+        if: always()
+        run: docker compose down -v
