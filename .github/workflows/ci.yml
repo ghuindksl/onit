@@ -34,7 +34,7 @@ jobs:
           EOF
 
       - name: Build and start containers
-        run: docker compose --env-file .env up -d --build
+        run: docker compose up -d --build
 
       - name: Run functional test
         run: APP_URL="http://localhost:${APP_PORT}" ./tests/functional_test.sh
